@@ -18,6 +18,7 @@ namespace myslam {
 Frontend::Frontend() {
     gftt_ =
         cv::GFTTDetector::create(Config::Get<int>("num_features"), 0.01, 20);
+    brief_ = cv::xfeatures2d::BriefDescriptorExtractor::create(32, false);
     num_features_init_ = Config::Get<int>("num_features_init");
     num_features_ = Config::Get<int>("num_features");
 }
@@ -73,20 +74,19 @@ bool Frontend::InsertKeyframe() {
         // still have enough features, don't insert keyframe
         return false;
     }
+
+    SetObservationsForKeyFrame();
+    DetectFeatures();  // detect new features
+    // track in right image
+    FindFeaturesInRight();
+    // triangulate map points
+    TriangulateNewPoints();
     // current frame is a new keyframe
     current_frame_->SetKeyFrame();
     map_->InsertKeyFrame(current_frame_);
 
     LOG(INFO) << "Set frame " << current_frame_->id_ << " as keyframe "
               << current_frame_->keyframe_id_;
-
-    SetObservationsForKeyFrame();
-    DetectFeatures();  // detect new features
-
-    // track in right image
-    FindFeaturesInRight();
-    // triangulate map points
-    TriangulateNewPoints();
     // update backend because we have a new keyframe
     backend_->UpdateMap();
 
@@ -276,7 +276,11 @@ bool Frontend::StereoInit() {
 }
 
 int Frontend::DetectFeatures() {
-    cv::Mat mask(current_frame_->left_img_.size(), CV_8UC1, 255);
+    // Note: brief描述子的patch=48 kernel=9，因此，不检测边缘 (patch/2 + kernel/2)=28 区域的特征点，来保证特征点一定可以计算描述子。
+    cv::Size frameSize = current_frame_->left_img_.size();
+    cv::Mat mask = cv::Mat::zeros(frameSize, CV_8UC1);
+    rectangle(mask, {28, 28}, {frameSize.width - 28, frameSize.height - 28}, 255, CV_FILLED);
+
     for (auto &feat : current_frame_->features_left_) {
         cv::rectangle(mask, feat->position_.pt - cv::Point2f(10, 10),
                       feat->position_.pt + cv::Point2f(10, 10), 0, CV_FILLED);
@@ -290,6 +294,12 @@ int Frontend::DetectFeatures() {
             Feature::Ptr(new Feature(current_frame_, kp)));
         cnt_detected++;
     }
+
+    // 计算新的描述子，添加到后面，保持features和descriptors索引的一致性
+    cv::Mat newDescriptors;
+    brief_->compute(current_frame_->left_img_, keypoints, newDescriptors);
+    current_frame_->descriptors_left_.push_back(newDescriptors);
+
 
     LOG(INFO) << "Detect " << cnt_detected << " new features";
     return cnt_detected;

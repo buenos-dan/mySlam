@@ -24,8 +24,6 @@ namespace myslam {
 
 void Map::InsertKeyFrame(Frame::Ptr frame) {
     current_frame_ = frame;
-    cv::Mat descriptors = ExtractKFDescriptors();
-//    frame -> ;
 
     if (keyframes_.find(frame->keyframe_id_) == keyframes_.end()) {
         keyframes_.insert(make_pair(frame->keyframe_id_, frame));

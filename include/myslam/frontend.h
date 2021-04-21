@@ -135,6 +135,7 @@ class Frontend {
 
     // utilities
     cv::Ptr<cv::GFTTDetector> gftt_;  // feature detector in opencv
+    cv::Ptr<cv::xfeatures2d::BriefDescriptorExtractor> brief_;
 };
 
 }  // namespace myslam

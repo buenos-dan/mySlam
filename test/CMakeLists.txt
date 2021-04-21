@@ -1,7 +1,7 @@
 SET(TEST_SOURCES
         test_triangulation
-        test_optflow
-        test_brief
+        test_features
+        playGround
         )
 
 FOREACH (test_src ${TEST_SOURCES})

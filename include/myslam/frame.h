@@ -33,6 +33,8 @@ struct Frame {
     std::vector<std::shared_ptr<Feature>> features_left_;
     // corresponding features in right image, set to nullptr if no corresponding
     std::vector<std::shared_ptr<Feature>> features_right_;
+    // extracted descriptors in left image, index is the same as features_left_.
+    cv::Mat descriptors_left_;
 
    public:  // data members
     Frame() {}
