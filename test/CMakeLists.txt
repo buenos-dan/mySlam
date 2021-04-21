@@ -1,4 +1,8 @@
-SET(TEST_SOURCES test_triangulation)
+SET(TEST_SOURCES
+        test_triangulation
+        test_optflow
+        test_brief
+        )
 
 FOREACH (test_src ${TEST_SOURCES})
     ADD_EXECUTABLE(${test_src} ${test_src}.cpp)

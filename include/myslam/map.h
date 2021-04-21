@@ -2,6 +2,7 @@
 #ifndef MAP_H
 #define MAP_H
 
+#include <opencv2/xfeatures2d.hpp>
 #include "myslam/common_include.h"
 #include "myslam/frame.h"
 #include "myslam/mappoint.h"
@@ -55,6 +56,9 @@ class Map {
    private:
     // 将旧的关键帧置为不活跃状态
     void RemoveOldKeyframe();
+
+    // 计算KeyFrame的特征点的描述子
+    cv::Mat ExtractKFDescriptors();
 
     std::mutex data_mutex_;
     LandmarksType landmarks_;         // all landmarks

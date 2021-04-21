@@ -24,10 +24,14 @@ namespace myslam {
 
 void Map::InsertKeyFrame(Frame::Ptr frame) {
     current_frame_ = frame;
+    cv::Mat descriptors = ExtractKFDescriptors();
+//    frame -> ;
+
     if (keyframes_.find(frame->keyframe_id_) == keyframes_.end()) {
         keyframes_.insert(make_pair(frame->keyframe_id_, frame));
         active_keyframes_.insert(make_pair(frame->keyframe_id_, frame));
     } else {
+        // almost never jump into here...
         keyframes_[frame->keyframe_id_] = frame;
         active_keyframes_[frame->keyframe_id_] = frame;
     }
@@ -108,6 +112,31 @@ void Map::CleanMap() {
         }
     }
     LOG(INFO) << "Removed " << cnt_landmark_removed << " active landmarks";
+}
+
+cv::Mat Map::ExtractKFDescriptors(){
+    // reduce keypoints
+    assert(current_frame_->features_left_.size() == current_frame_->features_right_.size());
+    int cnt = 0;
+    for(int i = 0; i < current_frame_->features_left_.size(); i++){
+        if(current_frame_->features_right_[i] == nullptr) continue;
+        current_frame_->features_left_[cnt++] = current_frame_->features_left_[i];
+        current_frame_->features_right_[cnt++] = current_frame_->features_right_[i];
+    }
+    current_frame_->features_left_.resize(cnt);
+    current_frame_->features_right_.resize(cnt);
+
+    // get vector<KeyPoint>
+    std::vector<cv::KeyPoint> kpsLeft;
+    for(Feature::Ptr feat : current_frame_->features_left_){
+        kpsLeft.push_back(feat->position_);
+    }
+    // extract descriptors
+    cv::Mat descriptors;
+    cv::Ptr<cv::xfeatures2d::BriefDescriptorExtractor> brief = cv::xfeatures2d::BriefDescriptorExtractor::create(32, false);
+    brief ->compute(current_frame_->left_img_, kpsLeft, descriptors);
+
+    return descriptors;
 }
 
 }  // namespace myslam
