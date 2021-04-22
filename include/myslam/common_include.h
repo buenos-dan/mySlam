@@ -7,6 +7,7 @@
 #include <condition_variable>
 #include <iostream>
 #include <list>
+#include <queue>
 #include <map>
 #include <memory>
 #include <mutex>

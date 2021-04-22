@@ -19,11 +19,27 @@
 
 #include "myslam/map.h"
 #include "myslam/feature.h"
+#include "myslam/config.h"
 
 namespace myslam {
 
+    Map::Map(){
+        matcher_ = cv::DescriptorMatcher::create("BruteForce-Hamming");
+        loop_flag_ = Config::Get<int>("loop_flag");
+        if(loop_flag_){
+            LOG(INFO) << "loading voc ...";
+            voc_ = new DBoW3::Vocabulary("./config/ORBvoc.txt");
+            db_.setVocabulary(*voc_, false, 0);
+            LOG(INFO) << "load voc finished!";
+        }
+    }
+
 void Map::InsertKeyFrame(Frame::Ptr frame) {
     current_frame_ = frame;
+
+    if(loop_flag_){
+        DetectLoopAndCorrectMappoint(frame);
+    }
 
     if (keyframes_.find(frame->keyframe_id_) == keyframes_.end()) {
         keyframes_.insert(make_pair(frame->keyframe_id_, frame));
@@ -112,29 +128,55 @@ void Map::CleanMap() {
     LOG(INFO) << "Removed " << cnt_landmark_removed << " active landmarks";
 }
 
-cv::Mat Map::ExtractKFDescriptors(){
-    // reduce keypoints
-    assert(current_frame_->features_left_.size() == current_frame_->features_right_.size());
-    int cnt = 0;
-    for(int i = 0; i < current_frame_->features_left_.size(); i++){
-        if(current_frame_->features_right_[i] == nullptr) continue;
-        current_frame_->features_left_[cnt++] = current_frame_->features_left_[i];
-        current_frame_->features_right_[cnt++] = current_frame_->features_right_[i];
-    }
-    current_frame_->features_left_.resize(cnt);
-    current_frame_->features_right_.resize(cnt);
+    void Map::DetectLoopAndCorrectMappoint(Frame::Ptr frame){
+        DBoW3::QueryResults ret;
+        db_.query(frame->descriptors_left_, ret, 4, frame->id_ - 50);
+        db_.add(frame->descriptors_left_);
 
-    // get vector<KeyPoint>
-    std::vector<cv::KeyPoint> kpsLeft;
-    for(Feature::Ptr feat : current_frame_->features_left_){
-        kpsLeft.push_back(feat->position_);
-    }
-    // extract descriptors
-    cv::Mat descriptors;
-    cv::Ptr<cv::xfeatures2d::BriefDescriptorExtractor> brief = cv::xfeatures2d::BriefDescriptorExtractor::create(32, false);
-    brief ->compute(current_frame_->left_img_, kpsLeft, descriptors);
+//        for(int i = 0; i < ret.size(); i++) LOG(WARNING) << "db ret: " << ret[i].Score << " frame id: " << ret[i].Id;
+        if(!ret.empty() && ret[0].Score > 0.065){
+            int loopIndex = ret[0].Id;
+            Frame::Ptr loopFrame = keyframes_[loopIndex];
+            cv::Mat descCur = frame->descriptors_left_, descLoop = loopFrame->descriptors_left_;
+            std::vector<cv::DMatch> matches;
+            matcher_ ->match(descLoop, descCur, matches);
 
-    return descriptors;
-}
+            // correct map_points.
+            for(cv::DMatch match: matches){
+                Feature::Ptr loopFeat = loopFrame->features_left_[match.queryIdx];
+                if(!loopFeat->map_point_.expired()){
+                    frame->features_left_[match.trainIdx]->map_point_ = loopFeat ->map_point_;
+                }
+            }
+            // add into queue to BA.
+            {
+                std::unique_lock<std::mutex> lck(loop_mutex_);
+                loopQueue_.push({loopIndex, frame->id_});
+            }
+            LOG(INFO) << "detect loop, current frame: " << frame->id_ << " loop frame: " << loopIndex;
+
+        }
+
+    }
+
+    Map::KeyframesType Map::GetRegionKeyFrames(long startFrameID, long endFrameID){
+        std::unique_lock<std::mutex> lck(data_mutex_);
+        region_keyframes_.clear();
+        for(int i = startFrameID; i <= endFrameID; i++){
+            auto item = keyframes_.find(i);
+            if(item != keyframes_.end()) region_keyframes_.insert(*item);
+        }
+        return region_keyframes_;
+    }
+
+    Map::LandmarksType Map::GetRegionMapPoints(long startFrameID, long endFrameID){
+        std::unique_lock<std::mutex> lck(data_mutex_);
+        region_landmarks_.clear();
+        for(int i = startFrameID; i <= endFrameID; i++){
+            auto item = landmarks_.find(i);
+            if(item != landmarks_.end()) region_landmarks_.insert(*item);
+        }
+        return region_landmarks_;
+    }
 
 }  // namespace myslam

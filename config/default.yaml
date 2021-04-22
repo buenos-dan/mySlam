@@ -12,3 +12,8 @@ camera.cy: 249.7
 num_features: 150
 num_features_init: 50
 num_features_tracking: 50
+
+loop_flag: 0     # 0: closed, 1: using loop detect.
+
+# static config, do not edit unless necessary.
+voc_file_path: config/brief_k10L6.bin

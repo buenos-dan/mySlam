@@ -32,6 +32,19 @@ void Backend::BackendLoop() {
         std::unique_lock<std::mutex> lock(data_mutex_);
         map_update_.wait(lock);
 
+        { // anonymous namespace
+            std::unique_lock<std::mutex> lck(map_->loop_mutex_);
+            if(!map_->loopQueue_.empty()){
+                /// 优化回环
+                auto region = map_->loopQueue_.front();
+                map_->loopQueue_.pop();
+                Map::KeyframesType region_kfs = map_->GetRegionKeyFrames(region.first, region.second);
+                Map::LandmarksType region_landmarks = map_->GetRegionMapPoints(region.first, region.second);
+                Optimize(region_kfs, region_landmarks);
+                LOG(INFO) << "BA frame from " << region.first << " to " << region.second;
+            }
+        }
+
         /// 后端仅优化激活的Frames和Landmarks
         Map::KeyframesType active_kfs = map_->GetActiveKeyFrames();
         Map::LandmarksType active_landmarks = map_->GetActiveMapPoints();

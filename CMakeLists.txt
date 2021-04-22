@@ -14,6 +14,10 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin/lib)
 # Eigen
 include_directories("/usr/include/eigen3")
 
+# DBoW3
+include_directories("/usr/local/include/DBoW3")
+set(DBoW3LIB /usr/local/lib/libDBoW3.so)
+
 # OpenCV
 find_package(OpenCV 3.4 REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
@@ -56,6 +60,7 @@ set(THIRD_PARTY_LIBS
         ${GFLAGS_LIBRARIES}
         pthread
         ${CSPARSE_LIBRARY}
+        ${DBoW3LIB}
         )
 
 enable_testing()
