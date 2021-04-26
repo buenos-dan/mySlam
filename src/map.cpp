@@ -37,9 +37,7 @@ namespace myslam {
 void Map::InsertKeyFrame(Frame::Ptr frame) {
     current_frame_ = frame;
 
-    if(loop_flag_){
-        DetectLoopAndCorrectMappoint(frame);
-    }
+    if(loop_flag_) DetectLoopAndCorrectMappoint(frame);
 
     if (keyframes_.find(frame->keyframe_id_) == keyframes_.end()) {
         keyframes_.insert(make_pair(frame->keyframe_id_, frame));
@@ -129,13 +127,32 @@ void Map::CleanMap() {
 }
 
     void Map::DetectLoopAndCorrectMappoint(Frame::Ptr frame){
+        if(frame->keyframe_id_ < last_loop_index_ + 50){
+            db_.add(frame->descriptors_left_);
+            return;
+        }
         DBoW3::QueryResults ret;
-        db_.query(frame->descriptors_left_, ret, 4, frame->id_ - 50);
+        db_.query(frame->descriptors_left_, ret, 4, frame->keyframe_id_ - 50);
         db_.add(frame->descriptors_left_);
 
-//        for(int i = 0; i < ret.size(); i++) LOG(WARNING) << "db ret: " << ret[i].Score << " frame id: " << ret[i].Id;
-        if(!ret.empty() && ret[0].Score > 0.065){
-            int loopIndex = ret[0].Id;
+
+        if(!ret.empty() && ret[0].Score > 0.05){
+            unsigned long loopIndex = LONG_MAX;
+            for(int i = 1; i < ret.size(); i++){
+                if(ret[i].Score > 0.015 && ret[i].Id < loopIndex) loopIndex = ret[i].Id;
+            }
+            if(loopIndex == LONG_MAX) return;
+
+            { // debug
+//                for(int i =0; i < ret.size();i++) LOG(INFO) << "loop score: " << ret[i].Score;
+//                for (int i = 0; i < ret.size(); i++) {
+//                    LOG(INFO) << "detect loop, current frame: " << frame->keyframe_id_ << " loop frame: " << ret[i].Id;
+//                    cv::imshow("loop" + i, keyframes_.at(ret[i].Id)->left_img_);
+//                }
+//                cv::imshow("cur img", frame->left_img_);
+//                cv::waitKey(0);
+            }
+
             Frame::Ptr loopFrame = keyframes_[loopIndex];
             cv::Mat descCur = frame->descriptors_left_, descLoop = loopFrame->descriptors_left_;
             std::vector<cv::DMatch> matches;
@@ -153,7 +170,9 @@ void Map::CleanMap() {
                 std::unique_lock<std::mutex> lck(loop_mutex_);
                 loopQueue_.push({loopIndex, frame->id_});
             }
-            LOG(INFO) << "detect loop, current frame: " << frame->id_ << " loop frame: " << loopIndex;
+
+            last_loop_index_ = frame->keyframe_id_;
+            LOG(INFO) << "detect loop, current frame: " << frame->keyframe_id_ << " loop frame: " << loopIndex;
 
         }
 

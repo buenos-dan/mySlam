@@ -18,7 +18,7 @@ namespace myslam {
 Frontend::Frontend() {
     gftt_ =
         cv::GFTTDetector::create(Config::Get<int>("num_features"), 0.01, 20);
-    brief_ = cv::xfeatures2d::BriefDescriptorExtractor::create(32, false);
+    brief_ = cv::xfeatures2d::BriefDescriptorExtractor::create(32, true);
     num_features_init_ = Config::Get<int>("num_features_init");
     num_features_ = Config::Get<int>("num_features");
 }
@@ -242,15 +242,18 @@ int Frontend::TrackLastFrame() {
 
     int num_good_pts = 0;
 
+
     for (size_t i = 0; i < status.size(); ++i) {
         if (status[i]) {
             cv::KeyPoint kp(kps_current[i], 7);
             Feature::Ptr feature(new Feature(current_frame_, kp));
             feature->map_point_ = last_frame_->features_left_[i]->map_point_;
             current_frame_->features_left_.push_back(feature);
+            current_frame_->descriptors_left_.push_back(last_frame_->descriptors_left_.row(i));
             num_good_pts++;
         }
     }
+    assert(current_frame_->features_left_.size() == current_frame_->descriptors_left_.rows);
 
     LOG(INFO) << "Find " << num_good_pts << " in the last image.";
     return num_good_pts;
@@ -276,10 +279,10 @@ bool Frontend::StereoInit() {
 }
 
 int Frontend::DetectFeatures() {
-    // Note: brief描述子的patch=48 kernel=9，因此，不检测边缘 (patch/2 + kernel/2)=28 区域的特征点，来保证特征点一定可以计算描述子。
+    // Note: brief描述子的patch=48 kernel=9，因此，不检测边缘 ceil(patch/2 + kernel/2)=29 区域的特征点，来保证特征点一定可以计算描述子。
     cv::Size frameSize = current_frame_->left_img_.size();
     cv::Mat mask = cv::Mat::zeros(frameSize, CV_8UC1);
-    rectangle(mask, {28, 28}, {frameSize.width - 28, frameSize.height - 28}, 255, CV_FILLED);
+    rectangle(mask, {29, 29}, {frameSize.width - 29, frameSize.height - 29}, 255, CV_FILLED);
 
     for (auto &feat : current_frame_->features_left_) {
         cv::rectangle(mask, feat->position_.pt - cv::Point2f(10, 10),
@@ -299,7 +302,6 @@ int Frontend::DetectFeatures() {
     cv::Mat newDescriptors;
     brief_->compute(current_frame_->left_img_, keypoints, newDescriptors);
     current_frame_->descriptors_left_.push_back(newDescriptors);
-
 
     LOG(INFO) << "Detect " << cnt_detected << " new features";
     return cnt_detected;

@@ -87,6 +87,7 @@ public:
     // settings
     int num_active_keyframes_ = 7;  // 激活的关键帧数量
     bool loop_flag_ = false; // 是否启用回环检测
+    unsigned long last_loop_index_ = 0; // 上次检测到回环的keyframeId
 
     // DBoW2
     DBoW3::Database db_;
