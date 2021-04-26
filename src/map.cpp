@@ -28,8 +28,9 @@ namespace myslam {
         loop_flag_ = Config::Get<int>("loop_flag");
         if(loop_flag_){
             LOG(INFO) << "loading voc ...";
-            voc_ = new DBoW3::Vocabulary("./config/ORBvoc.txt");
+            voc_ = new DBoW3::Vocabulary(Config::Get<std::string>("voc_file"));
             db_.setVocabulary(*voc_, false, 0);
+            assert(!voc_->empty());
             LOG(INFO) << "load voc finished!";
         }
     }

@@ -7,11 +7,14 @@
 
 #include <pangolin/pangolin.h>
 #include <opencv2/opencv.hpp>
+#include <myslam/config.h>
 
 namespace myslam {
 
 Viewer::Viewer() {
     viewer_thread_ = std::thread(std::bind(&Viewer::ThreadLoop, this));
+    show_ground_truth_ = Config::Get<int>("show_ground_truth");
+    if(show_ground_truth_) ReadTrajectory(Config::Get<std::string>("ground_truth_file"));
 }
 
 void Viewer::Close() {
@@ -100,6 +103,11 @@ void Viewer::FollowCurrentFrame(pangolin::OpenGlRenderState& vis_camera) {
 
 void Viewer::DrawFrame(Frame::Ptr frame, const float* color) {
     SE3 Twc = frame->Pose().inverse();
+    Sophus::Matrix4f m = Twc.matrix().template cast<float>();
+    DrawCamPose(m, color);
+}
+
+void Viewer::DrawCamPose(Sophus::Matrix4f m, const float* color) {
     const float sz = 1.0;
     const int line_width = 2.0;
     const float fx = 400;
@@ -110,8 +118,6 @@ void Viewer::DrawFrame(Frame::Ptr frame, const float* color) {
     const float height = 768;
 
     glPushMatrix();
-
-    Sophus::Matrix4f m = Twc.matrix().template cast<float>();
     glMultMatrixf((GLfloat*)m.data());
 
     if (color == nullptr) {
@@ -147,9 +153,14 @@ void Viewer::DrawFrame(Frame::Ptr frame, const float* color) {
 }
 
 void Viewer::DrawMapPoints() {
+    const float blue[3] = {0, 0, 1.0};
     const float red[3] = {1.0, 0, 0};
     for (auto& kf : keyframes_) {
         DrawFrame(kf.second, red);
+        if (show_ground_truth_) {
+            Sophus::Matrix4f m = ground_truth_.at(kf.second->id_);
+            DrawCamPose(m, blue);
+        }
     }
 
     glPointSize(2);
@@ -160,6 +171,23 @@ void Viewer::DrawMapPoints() {
         glVertex3d(pos[0], pos[1], pos[2]);
     }
     glEnd();
+}
+
+void Viewer::ReadTrajectory(const std::string &path) {
+    std::ifstream fin(path);
+    assert(fin);
+
+    unsigned long cnt = 0;
+    while(!fin.eof()) {
+        float a11, a12, a13, a14, a21, a22, a23, a24, a31, a32, a33, a34;
+        fin >> a11 >> a12 >> a13 >> a14 >> a21 >> a22 >> a23 >> a24
+        >> a31 >> a32 >> a33 >> a34;
+        Sophus::Matrix4f p;
+        p << a11, a12, a13, a14, a21, a22, a23, a24, a31, a32, a33, a34, 0, 0 ,0, 1;
+        ground_truth_.insert({cnt++, p});
+    }
+    fin.close();
+    LOG(INFO) << "load ground truth done!!";
 }
 
 }  // namespace myslam

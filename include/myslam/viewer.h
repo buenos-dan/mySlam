@@ -21,6 +21,7 @@ class Viewer {
    public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
     typedef std::shared_ptr<Viewer> Ptr;
+    typedef std::unordered_map<unsigned long, Sophus::Matrix4f> TrajectoryType;
 
     Viewer();
 
@@ -34,10 +35,15 @@ class Viewer {
     // 更新地图
     void UpdateMap();
 
+    // 读取轨迹
+    void ReadTrajectory(const std::string &path);
+
    private:
     void ThreadLoop();
 
     void DrawFrame(Frame::Ptr frame, const float* color);
+
+    void DrawCamPose(Sophus::Matrix4f m, const float* color);
 
     void DrawMapPoints();
 
@@ -57,6 +63,9 @@ class Viewer {
     std::unordered_map<unsigned long, Frame::Ptr> active_keyframes_;
     std::unordered_map<unsigned long, MapPoint::Ptr> active_landmarks_;
     bool map_updated_ = false;
+
+    bool show_ground_truth_;
+    TrajectoryType ground_truth_;
 
     std::mutex viewer_data_mutex_;
 };
