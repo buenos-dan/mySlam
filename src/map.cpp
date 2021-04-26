@@ -169,7 +169,7 @@ void Map::CleanMap() {
             // add into queue to BA.
             {
                 std::unique_lock<std::mutex> lck(loop_mutex_);
-                loopQueue_.push({loopIndex, frame->id_});
+                loopQueue_.push({loopIndex, frame->keyframe_id_});
             }
 
             last_loop_index_ = frame->keyframe_id_;
@@ -182,9 +182,10 @@ void Map::CleanMap() {
     Map::KeyframesType Map::GetRegionKeyFrames(long startFrameID, long endFrameID){
         std::unique_lock<std::mutex> lck(data_mutex_);
         region_keyframes_.clear();
-        for(int i = startFrameID; i <= endFrameID; i++){
+        for(unsigned long i = startFrameID; i <= endFrameID; i++){
             auto item = keyframes_.find(i);
             if(item != keyframes_.end()) region_keyframes_.insert(*item);
+            else throw "invalid region, loop BA failed!";
         }
         return region_keyframes_;
     }
@@ -193,8 +194,15 @@ void Map::CleanMap() {
         std::unique_lock<std::mutex> lck(data_mutex_);
         region_landmarks_.clear();
         for(int i = startFrameID; i <= endFrameID; i++){
-            auto item = landmarks_.find(i);
-            if(item != landmarks_.end()) region_landmarks_.insert(*item);
+            auto kf = keyframes_.find(i);
+            if(kf != keyframes_.end()){
+               for(auto& feat: kf->second->features_left_){
+                   if(!feat->map_point_.expired()){
+                       auto mp = feat -> map_point_.lock();
+                       region_landmarks_.insert({mp->id_, mp});
+                   }
+               }
+            }
         }
         return region_landmarks_;
     }

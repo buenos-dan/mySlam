@@ -22,7 +22,7 @@ public:
     typedef std::unordered_map<unsigned long, Frame::Ptr> KeyframesType;
 
     std::mutex loop_mutex_;
-    std::queue<std::pair<long,long>> loopQueue_;
+    std::queue<std::pair<unsigned long, unsigned long>> loopQueue_;
 
 public:
     Map();
