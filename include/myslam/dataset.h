@@ -15,7 +15,7 @@ class Dataset {
    public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
     typedef std::shared_ptr<Dataset> Ptr;
-    Dataset(const std::string& dataset_path);
+    Dataset(const std::string& dataset_path, unsigned long max_image_index);
 
     /// 初始化，返回是否成功
     bool Init();
@@ -30,6 +30,7 @@ class Dataset {
 
    private:
     std::string dataset_path_;
+    unsigned long max_image_index_;
     int current_image_index_ = 0;
 
     std::vector<Camera::Ptr> cameras_;

@@ -5,15 +5,18 @@ dataset_dir: /home/buenos/buenos/data_odometry_gray/dataset/sequences/00
 voc_file: /home/buenos/buenos/data_odometry_gray/ORBvoc.txt
 ground_truth_file: /home/buenos/buenos/data_odometry_gray/groundtruth/poses/00.txt
 
+# dataset
+max_image_index: -1     # set dataset size. you can just run a small piece of whole dataset. -1 means all.
+
 # camera intrinsics
 camera.fx: 517.3
 camera.fy: 516.5
 camera.cx: 325.1
 camera.cy: 249.7
 
-num_features: 150
-num_features_init: 50
-num_features_tracking: 50
+num_features: 500
+num_features_init: 100
+num_features_tracking: 100
 
 loop_flag: 0     # if 1, please set correct voc_file.
-show_ground_truth: 1  # if 1, please set correct ground_truth_file.
+show_ground_truth: 0  # if 1, please set correct ground_truth_file.

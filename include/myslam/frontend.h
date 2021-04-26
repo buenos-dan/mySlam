@@ -127,11 +127,11 @@ class Frontend {
     int tracking_inliers_ = 0;  // inliers, used for testing new keyframes
 
     // params
-    int num_features_ = 200;
-    int num_features_init_ = 100;
-    int num_features_tracking_ = 50;
-    int num_features_tracking_bad_ = 20;
-    int num_features_needed_for_keyframe_ = 80;
+    int num_features_;
+    int num_features_init_;
+    int num_features_tracking_;
+    int num_features_tracking_bad_ = 50;
+    int num_features_needed_for_keyframe_ = 100;
 
     // utilities
     cv::Ptr<cv::GFTTDetector> gftt_;  // feature detector in opencv

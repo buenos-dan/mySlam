@@ -8,8 +8,8 @@ using namespace std;
 
 namespace myslam {
 
-Dataset::Dataset(const std::string& dataset_path)
-    : dataset_path_(dataset_path) {}
+Dataset::Dataset(const std::string& dataset_path, unsigned long max_image_index)
+    : dataset_path_(dataset_path), max_image_index_(max_image_index) {}
 
 bool Dataset::Init() {
     // read camera intrinsics and extrinsics
@@ -57,7 +57,7 @@ Frame::Ptr Dataset::NextFrame() {
         cv::imread((fmt % dataset_path_ % 1 % current_image_index_).str(),
                    cv::IMREAD_GRAYSCALE);
 
-    if (image_left.data == nullptr || image_right.data == nullptr) {
+    if (image_left.data == nullptr || image_right.data == nullptr || current_image_index_ > max_image_index_) {
         LOG(WARNING) << "cannot find images at index " << current_image_index_;
         return nullptr;
     }
