@@ -4,6 +4,8 @@
 #include "myslam/visual_odometry.h"
 #include <chrono>
 #include "myslam/config.h"
+#include <fstream>
+
 
 namespace myslam {
 
@@ -25,17 +27,21 @@ bool VisualOdometry::Init() {
     frontend_ = Frontend::Ptr(new Frontend);
     backend_ = Backend::Ptr(new Backend);
     map_ = Map::Ptr(new Map);
-    viewer_ = Viewer::Ptr(new Viewer);
 
     frontend_->SetBackend(backend_);
     frontend_->SetMap(map_);
-    frontend_->SetViewer(viewer_);
     frontend_->SetCameras(dataset_->GetCamera(0), dataset_->GetCamera(1));
 
     backend_->SetMap(map_);
     backend_->SetCameras(dataset_->GetCamera(0), dataset_->GetCamera(1));
 
-    viewer_->SetMap(map_);
+
+    show_viewer_ = Config::Get<int>("show_viewer");
+    if(show_viewer_){
+        viewer_ = Viewer::Ptr(new Viewer);
+        frontend_->SetViewer(viewer_);
+        viewer_->SetMap(map_);
+    }
 
     return true;
 }
@@ -51,6 +57,9 @@ void VisualOdometry::Run() {
     backend_->Stop();
     viewer_->Close();
 
+    // cal RMSE
+    LOG(INFO) << "RMSE: " << CalSeqError();
+
     LOG(INFO) << "VO exit";
 }
 
@@ -65,6 +74,47 @@ bool VisualOdometry::Step() {
         std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
     LOG(INFO) << "VO cost time: " << time_used.count() << " seconds.";
     return success;
+}
+
+double VisualOdometry::CalSeqError(){
+    double rmse = 0;
+
+    Viewer::TrajectoryType gtPoses = loadPoses(Config::Get<std::string>("ground_truth_file"));
+    if(gtPoses.empty()){
+        LOG(ERROR) << "load ground truth err, CalSeqError exit.";
+        return rmse;
+    }
+
+    Map::KeyframesType kfs = map_->GetAllKeyFrames();
+    for(auto& kf: kfs){
+        SE3 gtPoseInv = gtPoses.at(kf.second->id_);
+        SE3 pose = kf.second->Pose();
+        double error = (gtPoseInv * pose).log().norm();
+        rmse += error * error;
+    }
+
+    rmse = rmse / double(kfs.size());
+    rmse = sqrt(rmse);
+    return rmse;
+}
+
+Viewer::TrajectoryType VisualOdometry::loadPoses(const std::string file_name) {
+    Viewer::TrajectoryType gtPoses;
+    std::ifstream fin(file_name);
+    if(!fin) return gtPoses;
+
+    unsigned long cnt = 0;
+    while(!fin.eof()) {
+        float a11, a12, a13, a14, a21, a22, a23, a24, a31, a32, a33, a34;
+        fin >> a11 >> a12 >> a13 >> a14 >> a21 >> a22 >> a23 >> a24
+            >> a31 >> a32 >> a33 >> a34;
+        Sophus::Matrix4f p;
+        p << a11, a12, a13, a14, a21, a22, a23, a24, a31, a32, a33, a34, 0, 0 ,0, 1;
+        Sophus::SE3f pose_gt(p);
+        gtPoses.insert({cnt++, pose_gt.cast<double>()});
+    }
+    fin.close();
+    return gtPoses;
 }
 
 }  // namespace myslam

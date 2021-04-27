@@ -21,7 +21,7 @@ class Viewer {
    public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
     typedef std::shared_ptr<Viewer> Ptr;
-    typedef std::unordered_map<unsigned long, Sophus::Matrix4f> TrajectoryType;
+    typedef std::unordered_map<unsigned long, SE3> TrajectoryType;
 
     Viewer();
 
@@ -43,7 +43,7 @@ class Viewer {
 
     void DrawFrame(Frame::Ptr frame, const float* color);
 
-    void DrawCamPose(Sophus::Matrix4f m, const float* color);
+    void DrawCamPose(SE3 m, const float* color);
 
     void DrawMapPoints();
 

@@ -40,7 +40,13 @@ class VisualOdometry {
     /// 获取前端状态
     FrontendStatus GetFrontendStatus() const { return frontend_->GetStatus(); }
 
-   private:
+    // 计算均方根误差
+    double CalSeqError();
+
+    // load groundtrue
+    Viewer::TrajectoryType loadPoses(const std::string file_name);
+
+private:
     bool inited_ = false;
     std::string config_file_path_;
 
@@ -51,6 +57,10 @@ class VisualOdometry {
 
     // dataset
     Dataset::Ptr dataset_ = nullptr;
+
+    bool show_viewer_;
+
+
 };
 }  // namespace myslam
 

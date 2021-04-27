@@ -89,7 +89,7 @@ cv::Mat Viewer::PlotFrameImage() {
         if (current_frame_->features_left_[i]->map_point_.lock()) {
             auto feat = current_frame_->features_left_[i];
             cv::circle(img_out, feat->position_.pt, 2, cv::Scalar(0, 250, 0),
-                       2);
+                       1);
         }
     }
     return img_out;
@@ -103,11 +103,10 @@ void Viewer::FollowCurrentFrame(pangolin::OpenGlRenderState& vis_camera) {
 
 void Viewer::DrawFrame(Frame::Ptr frame, const float* color) {
     SE3 Twc = frame->Pose().inverse();
-    Sophus::Matrix4f m = Twc.matrix().template cast<float>();
-    DrawCamPose(m, color);
+    DrawCamPose(Twc, color);
 }
 
-void Viewer::DrawCamPose(Sophus::Matrix4f m, const float* color) {
+void Viewer::DrawCamPose(SE3 Twc, const float* color) {
     const float sz = 1.0;
     const int line_width = 2.0;
     const float fx = 400;
@@ -118,6 +117,8 @@ void Viewer::DrawCamPose(Sophus::Matrix4f m, const float* color) {
     const float height = 768;
 
     glPushMatrix();
+
+    Sophus::Matrix4f m = Twc.matrix().template cast<float>();
     glMultMatrixf((GLfloat*)m.data());
 
     if (color == nullptr) {
@@ -158,8 +159,8 @@ void Viewer::DrawMapPoints() {
     for (auto& kf : keyframes_) {
         DrawFrame(kf.second, red);
         if (show_ground_truth_) {
-            Sophus::Matrix4f m = ground_truth_.at(kf.second->id_);
-            DrawCamPose(m, blue);
+            SE3 pose_gt = ground_truth_.at(kf.second->id_);
+            DrawCamPose(pose_gt, blue);
         }
     }
 
@@ -184,7 +185,8 @@ void Viewer::ReadTrajectory(const std::string &path) {
         >> a31 >> a32 >> a33 >> a34;
         Sophus::Matrix4f p;
         p << a11, a12, a13, a14, a21, a22, a23, a24, a31, a32, a33, a34, 0, 0 ,0, 1;
-        ground_truth_.insert({cnt++, p});
+        Sophus::SE3f pose_gt(p);
+        ground_truth_.insert({cnt++, pose_gt.cast<double>()});
     }
     fin.close();
     LOG(INFO) << "load ground truth done!!";

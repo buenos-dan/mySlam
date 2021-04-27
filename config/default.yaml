@@ -6,7 +6,7 @@ voc_file: /home/buenos/buenos/data_odometry_gray/ORBvoc.txt
 ground_truth_file: /home/buenos/buenos/data_odometry_gray/groundtruth/poses/00.txt
 
 # dataset
-max_image_index: -1     # set dataset size. you can just run a small piece of whole dataset. -1 means all.
+max_image_index: -1     # set dataset size. you can just run a small piece of the dataset. -1 means all.
 
 # camera intrinsics
 camera.fx: 517.3
@@ -18,5 +18,7 @@ num_features: 500
 num_features_init: 100
 num_features_tracking: 100
 
-loop_flag: 0     # if 1, please set correct voc_file.
-show_ground_truth: 0  # if 1, please set correct ground_truth_file.
+# some flags.
+show_viewer: 1        # if run with no screen, you should set this flag as 0.
+loop_flag: 1          # if 1, please set correct voc_file.
+show_ground_truth: 1  # if 1, please set correct ground_truth_file.

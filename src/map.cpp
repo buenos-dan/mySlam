@@ -145,16 +145,16 @@ void Map::CleanMap() {
             if(loopIndex == LONG_MAX) return;
 
             { // debug
-                for(int i =0; i < ret.size();i++) LOG(INFO) << "loop score: " << ret[i].Score;
-                for (int i = 0; i < ret.size(); i++) {
-                    if(ret[i].Score > 0.015){
-                        LOG(INFO) << "detect loop, current frame: " << frame->keyframe_id_ << " loop frame: " << ret[i].Id;
-                        cv::imshow(cv::format("loop%d-Score:%.2f", i, ret[i].Score), keyframes_.at(ret[i].Id)->left_img_);
-                    }
-                }
-                cv::imshow("cur img", frame->left_img_);
-                cv::waitKey(0);
-                cv::destroyAllWindows();
+//                for(int i =0; i < ret.size();i++) LOG(INFO) << "loop score: " << ret[i].Score;
+//                for (int i = 0; i < ret.size(); i++) {
+//                    if(ret[i].Score > 0.015){
+//                        LOG(INFO) << "detect loop, current frame: " << frame->keyframe_id_ << " loop frame: " << ret[i].Id;
+//                        cv::imshow(cv::format("loop%d-Score:%.2f", i, ret[i].Score), keyframes_.at(ret[i].Id)->left_img_);
+//                    }
+//                }
+//                cv::imshow("cur img", frame->left_img_);
+//                cv::waitKey(0);
+//                cv::destroyAllWindows();
             }
 
             Frame::Ptr loopFrame = keyframes_[loopIndex];

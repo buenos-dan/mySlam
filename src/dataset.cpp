@@ -4,7 +4,6 @@
 #include <boost/format.hpp>
 #include <fstream>
 #include <opencv2/opencv.hpp>
-using namespace std;
 
 namespace myslam {
 
@@ -13,7 +12,7 @@ Dataset::Dataset(const std::string& dataset_path, unsigned long max_image_index)
 
 bool Dataset::Init() {
     // read camera intrinsics and extrinsics
-    ifstream fin(dataset_path_ + "/calib.txt");
+    std::ifstream fin(dataset_path_ + "/calib.txt");
     if (!fin) {
         LOG(ERROR) << "cannot find " << dataset_path_ << "/calib.txt!";
         return false;
