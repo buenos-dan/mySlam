@@ -52,6 +52,7 @@ void Map::InsertKeyFrame(Frame::Ptr frame) {
     if (active_keyframes_.size() > num_active_keyframes_) {
         RemoveOldKeyframe();
     }
+    CleanMap();
 }
 
 void Map::InsertMapPoint(MapPoint::Ptr map_point) {
@@ -110,7 +111,7 @@ void Map::RemoveOldKeyframe() {
         }
     }
 
-    CleanMap();
+
 }
 
 void Map::CleanMap() {
