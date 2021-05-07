@@ -20,5 +20,5 @@ num_features_tracking: 100
 
 # some flags.
 show_viewer: 1        # if run with no screen, you should set this flag as 0.
-loop_flag: 1          # if 1, please set correct voc_file.
+loop_flag: 0          # if 1, please set correct voc_file.
 show_ground_truth: 1  # if 1, please set correct ground_truth_file.

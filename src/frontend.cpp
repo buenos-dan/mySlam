@@ -17,7 +17,7 @@ namespace myslam {
 
 Frontend::Frontend() {
     gftt_ =
-        cv::GFTTDetector::create(Config::Get<int>("num_features"), 0.001, 10);
+        cv::GFTTDetector::create(Config::Get<int>("num_features"), 0.01, 10);
     brief_ = cv::xfeatures2d::BriefDescriptorExtractor::create(32, true);
     num_features_init_ = Config::Get<int>("num_features_init");
     num_features_ = Config::Get<int>("num_features");
@@ -125,8 +125,6 @@ int Frontend::TriangulateNewPoints() {
                 new_map_point->SetPos(pworld);
                 new_map_point->AddObservation(
                     current_frame_->features_left_[i]);
-                new_map_point->AddObservation(
-                    current_frame_->features_right_[i]);
 
                 current_frame_->features_left_[i]->map_point_ = new_map_point;
                 current_frame_->features_right_[i]->map_point_ = new_map_point;
@@ -184,10 +182,10 @@ int Frontend::EstimateCurrentPose() {
     // estimate the Pose the determine the outliers
     const double chi2_th = 5.991;
     int cnt_outlier = 0;
-    for (int iteration = 0; iteration < 4; ++iteration) {
+    for (int iteration = 0; iteration < 5; ++iteration) {
         vertex_pose->setEstimate(current_frame_->Pose());
         optimizer.initializeOptimization();
-        optimizer.optimize(10);
+        optimizer.optimize(4);
         cnt_outlier = 0;
 
         // count the outliers
@@ -211,12 +209,12 @@ int Frontend::EstimateCurrentPose() {
         }
     }
 
-    LOG(INFO) << "Outlier/Inlier in pose estimating: " << cnt_outlier << "/"
-              << features.size() - cnt_outlier;
+//    LOG(INFO) << "Outlier/Inlier in pose estimating: " << cnt_outlier << "/"
+//              << features.size() - cnt_outlier;
     // Set pose and outlier
     current_frame_->SetPose(vertex_pose->estimate());
 
-    LOG(INFO) << "Current Pose = \n" << current_frame_->Pose().matrix();
+//    LOG(INFO) << "Current Pose = \n" << current_frame_->Pose().matrix();
 
     for (auto &feat : features) {
         if (feat->is_outlier_) {
@@ -228,12 +226,13 @@ int Frontend::EstimateCurrentPose() {
 }
 
 int Frontend::TrackLastFrame() {
-    // use LK flow to estimate points in the right image
+    // use LK flow to estimate points in the last image
     std::vector<cv::Point2f> kps_last, kps_current;
     for (auto &kp : last_frame_->features_left_) {
         kps_last.push_back(kp->position_.pt);
     }
 
+    LOG(INFO) << "Tracking " << kps_last.size() << " in the last image.";
     std::vector<uchar> status;
     Mat error;
     cv::calcOpticalFlowPyrLK(
@@ -325,7 +324,6 @@ int Frontend::FindFeaturesInRight() {
         if (status[i]) {
             cv::KeyPoint kp(kps_right[i], 7);
             Feature::Ptr feat(new Feature(current_frame_, kp));
-            feat->is_on_left_image_ = false;
             current_frame_->features_right_.push_back(feat);
             num_good_pts++;
         } else {
@@ -355,7 +353,6 @@ bool Frontend::BuildInitMap() {
             auto new_map_point = MapPoint::CreateNewMappoint();
             new_map_point->SetPos(pworld);
             new_map_point->AddObservation(current_frame_->features_left_[i]);
-            new_map_point->AddObservation(current_frame_->features_right_[i]);
             current_frame_->features_left_[i]->map_point_ = new_map_point;
             current_frame_->features_right_[i]->map_point_ = new_map_point;
             cnt_init_landmarks++;

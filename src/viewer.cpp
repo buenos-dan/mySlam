@@ -78,8 +78,6 @@ void Viewer::ThreadLoop() {
         pangolin::FinishFrame();
         usleep(5000);
     }
-
-    LOG(INFO) << "Stop viewer";
 }
 
 cv::Mat Viewer::PlotFrameImage() {

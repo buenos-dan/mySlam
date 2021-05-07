@@ -104,11 +104,8 @@ void Backend::Optimize(Map::KeyframesType &keyframes,
 
             auto frame = feat->frame_.lock();
             EdgeProjection *edge = nullptr;
-            if (feat->is_on_left_image_) {
-                edge = new EdgeProjection(K, left_ext);
-            } else {
-                edge = new EdgeProjection(K, right_ext);
-            }
+            edge = new EdgeProjection(K, left_ext);
+
 
             // 如果landmark还没有被加入优化，则新加一个顶点
             if (vertices_landmarks.find(landmark_id) ==
@@ -139,7 +136,7 @@ void Backend::Optimize(Map::KeyframesType &keyframes,
 
     // do optimization and eliminate the outliers
     optimizer.initializeOptimization();
-    optimizer.optimize(10);
+    optimizer.optimize(8);
 
     int cnt_outlier = 0, cnt_inlier = 0;
     int iteration = 0;
@@ -155,7 +152,7 @@ void Backend::Optimize(Map::KeyframesType &keyframes,
             }
         }
         double inlier_ratio = cnt_inlier / double(cnt_inlier + cnt_outlier);
-        if (inlier_ratio > 0.5) {
+        if (inlier_ratio > 0.6) {
             break;
         } else {
             chi2_th *= 2;
