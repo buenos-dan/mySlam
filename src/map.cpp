@@ -110,8 +110,6 @@ void Map::RemoveOldKeyframe() {
             mp->RemoveObservation(feat);
         }
     }
-
-
 }
 
 void Map::CleanMap() {
@@ -139,45 +137,83 @@ void Map::CleanMap() {
 
 
         if(!ret.empty() && ret[0].Score > 0.05){
-            unsigned long loopIndex = LONG_MAX;
+            // filter by score
+            std::vector<unsigned long> candidate_id;
             for(int i = 1; i < ret.size(); i++){
-                if(ret[i].Score > 0.015 && ret[i].Id < loopIndex) loopIndex = ret[i].Id;
+                if(ret[i].Score > 0.015) candidate_id.push_back(ret[i].Id);
             }
-            if(loopIndex == LONG_MAX) return;
+            if(candidate_id.empty()) return;
 
-            { // debug
-//                for(int i =0; i < ret.size();i++) LOG(INFO) << "loop score: " << ret[i].Score;
-//                for (int i = 0; i < ret.size(); i++) {
-//                    if(ret[i].Score > 0.015){
-//                        LOG(INFO) << "detect loop, current frame: " << frame->keyframe_id_ << " loop frame: " << ret[i].Id;
-//                        cv::imshow(cv::format("loop%d-Score:%.2f", i, ret[i].Score), keyframes_.at(ret[i].Id)->left_img_);
-//                    }
-//                }
-//                cv::imshow("cur img", frame->left_img_);
-//                cv::waitKey(0);
-//                cv::destroyAllWindows();
+            // filter by pose err
+            std::vector<unsigned long> sim3_id;
+            for(auto kf_id: candidate_id){
+                Frame::Ptr kf = keyframes_.at(kf_id);
+                double distance = (frame->pose_.translation() - kf->pose_.translation()).norm();
+                if(distance < 50){
+                    sim3_id.push_back(kf_id);
+                }
+            }
+            if(sim3_id.empty()) return;
+
+            // find the earliest loop id
+            unsigned long loopKFId = LONG_MAX;
+            for(int i = 0; i < sim3_id.size(); i++){
+                if(sim3_id[i] < loopKFId) loopKFId = sim3_id[i];
             }
 
-            Frame::Ptr loopFrame = keyframes_[loopIndex];
+            Frame::Ptr loopFrame = keyframes_[loopKFId];
             cv::Mat descCur = frame->descriptors_left_, descLoop = loopFrame->descriptors_left_;
             std::vector<cv::DMatch> matches;
             matcher_ ->match(descLoop, descCur, matches);
 
-            // correct map_points.
-            for(cv::DMatch match: matches){
-                Feature::Ptr loopFeat = loopFrame->features_left_[match.queryIdx];
-                if(!loopFeat->map_point_.expired()){
-                    frame->features_left_[match.trainIdx]->map_point_ = loopFeat ->map_point_;
+            // ransac
+            auto min_max = minmax_element(matches.begin(), matches.end(),
+                                          [](const cv::DMatch &m1, const cv::DMatch &m2) { return m1.distance < m2.distance; });
+            double min_dist = min_max.first->distance;
+            double max_dist = min_max.second->distance;
+            std::vector<cv::DMatch> good_matches;
+            for (int i = 0; i < descLoop.rows; i++) {
+                if (matches[i].distance <= std::max(2 * min_dist, 30.0)) {
+                    good_matches.push_back(matches[i]);
                 }
             }
+
+            // correct map_points.
+            int correct_point_cnt = 0;
+            for(cv::DMatch match: good_matches){
+                Feature::Ptr loopFeat = loopFrame->features_left_[match.queryIdx];
+                auto mp = loopFeat->map_point_.lock();
+                // TODO: there is a bug, mp always equals nullptr;
+                if(mp){
+                    frame->features_left_[match.trainIdx]->map_point_ = loopFeat ->map_point_.lock();
+                    correct_point_cnt++;
+                }
+            }
+            LOG(INFO) << "get " << good_matches.size() << " good matches.";
+            LOG(INFO) << "correct " << correct_point_cnt << " points.";
             // add into queue to BA.
             {
                 std::unique_lock<std::mutex> lck(loop_mutex_);
-                loopQueue_.push({loopIndex, frame->keyframe_id_});
+                loopQueue_.push({loopKFId, frame->keyframe_id_});
+            }
+
+            { // debug
+                Mat imgOut;
+                std::vector<cv::KeyPoint> loopKps, curKps;
+                for(auto& feat: loopFrame->features_left_){
+                    loopKps.push_back(feat->position_);
+                }
+                for(auto& feat : frame->features_left_){
+                    curKps.push_back(feat->position_);
+                }
+                cv::drawMatches(loopFrame->left_img_, loopKps, frame->left_img_, curKps, good_matches, imgOut);
+                imshow("loop detect", imgOut);
+                cv::waitKey(0);
+                cv::destroyAllWindows();
             }
 
             last_loop_index_ = frame->keyframe_id_;
-            LOG(INFO) << "detect loop, current frame: " << frame->keyframe_id_ << " loop frame: " << loopIndex;
+            LOG(INFO) << "detect loop, current frame: " << frame->keyframe_id_ << " loop frame: " << loopKFId;
 
         }
 
