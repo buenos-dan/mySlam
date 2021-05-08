@@ -25,10 +25,10 @@ namespace myslam {
 
     Map::Map(){
         matcher_ = cv::DescriptorMatcher::create("BruteForce-Hamming");
-        loop_flag_ = Config::Get<int>("loop_flag");
+        loop_flag_ = Config::GetParam<int>("loop_flag");
         if(loop_flag_){
             LOG(INFO) << "loading voc ...";
-            voc_ = new DBoW3::Vocabulary(Config::Get<std::string>("voc_file"));
+            voc_ = new DBoW3::Vocabulary(Config::GetPath<std::string>("voc_file"));
             db_.setVocabulary(*voc_, false, 0);
             assert(!voc_->empty());
             LOG(INFO) << "load voc finished!";

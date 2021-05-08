@@ -13,8 +13,8 @@ namespace myslam {
 
 Viewer::Viewer() {
     viewer_thread_ = std::thread(std::bind(&Viewer::ThreadLoop, this));
-    show_ground_truth_ = Config::Get<int>("show_ground_truth");
-    if(show_ground_truth_) ReadTrajectory(Config::Get<std::string>("ground_truth_file"));
+    show_ground_truth_ = Config::GetParam<int>("show_ground_truth");
+    if(show_ground_truth_) ReadTrajectory(Config::GetPath<std::string>("ground_truth_file"));
 }
 
 void Viewer::Close() {

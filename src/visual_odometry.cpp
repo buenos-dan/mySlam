@@ -9,18 +9,18 @@
 
 namespace myslam {
 
-VisualOdometry::VisualOdometry(std::string &config_path)
-    : config_file_path_(config_path) {}
+VisualOdometry::VisualOdometry(std::string &param_config, std::string &path_config)
+    : param_config_path_(param_config), path_config_path_(path_config) {}
 
 bool VisualOdometry::Init() {
     // read from config file
-    if (Config::SetParameterFile(config_file_path_) == false) {
+    if (Config::SetParameterFile(param_config_path_) == false || Config::SetPathFile(path_config_path_) == false) {
         return false;
     }
 
     dataset_ = Dataset::Ptr(new Dataset(
-                Config::Get<std::string>("dataset_dir"),
-                Config::Get<int>("max_image_index")));
+                Config::GetPath<std::string>("dataset_dir"),
+                Config::GetParam<int>("max_image_index")));
     CHECK_EQ(dataset_->Init(), true);
 
     // create components and links
@@ -36,7 +36,7 @@ bool VisualOdometry::Init() {
     backend_->SetCameras(dataset_->GetCamera(0), dataset_->GetCamera(1));
 
 
-    show_viewer_ = Config::Get<int>("show_viewer");
+    show_viewer_ = Config::GetParam<int>("show_viewer");
     if(show_viewer_){
         viewer_ = Viewer::Ptr(new Viewer);
         frontend_->SetViewer(viewer_);
@@ -78,7 +78,7 @@ bool VisualOdometry::Step() {
 double VisualOdometry::CalSeqError(){
     double rmse = 0;
 
-    Viewer::TrajectoryType gtPoses = loadPoses(Config::Get<std::string>("ground_truth_file"));
+    Viewer::TrajectoryType gtPoses = loadPoses(Config::GetPath<std::string>("ground_truth_file"));
     if(gtPoses.empty()){
         LOG(ERROR) << "load ground truth err, CalSeqError exit.";
         return rmse;
