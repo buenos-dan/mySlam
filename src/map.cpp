@@ -103,13 +103,6 @@ void Map::RemoveOldKeyframe() {
             mp->RemoveObservation(feat);
         }
     }
-    for (auto feat : frame_to_remove->features_right_) {
-        if (feat == nullptr) continue;
-        auto mp = feat->map_point_.lock();
-        if (mp) {
-            mp->RemoveObservation(feat);
-        }
-    }
 }
 
 void Map::CleanMap() {
@@ -180,14 +173,11 @@ void Map::CleanMap() {
 
             // correct map_points.
             int correct_point_cnt = 0;
+            std::vector<Feature::Ptr> loopFeats = loopFrame->features_left_;
             for(cv::DMatch match: good_matches){
-                Feature::Ptr loopFeat = loopFrame->features_left_[match.queryIdx];
-                auto mp = loopFeat->map_point_.lock();
-                // TODO: there is a bug, mp always equals nullptr;
-                if(mp){
-                    frame->features_left_[match.trainIdx]->map_point_ = loopFeat ->map_point_.lock();
-                    correct_point_cnt++;
-                }
+                // TODO: ...
+                frame->features_left_[match.trainIdx]->map_point_ = loopFeats[match.queryIdx] -> map_point_;
+                correct_point_cnt++;
             }
             LOG(INFO) << "get " << good_matches.size() << " good matches.";
             LOG(INFO) << "correct " << correct_point_cnt << " points.";
