@@ -2,4 +2,8 @@ bin/
 lib/
 build/
 .idea/
+.vscode/
 cmake-build-debug/
+accessories/
+logs/
+config/path.yaml

@@ -19,7 +19,7 @@ class VisualOdometry {
     typedef std::shared_ptr<VisualOdometry> Ptr;
 
     /// constructor with config file
-    VisualOdometry(std::string &config_path);
+    VisualOdometry(std::string &param_config, std::string &path_config);
 
     /**
      * do initialization things before run
@@ -48,7 +48,8 @@ class VisualOdometry {
 
 private:
     bool inited_ = false;
-    std::string config_file_path_;
+    std::string param_config_path_;
+    std::string path_config_path_;
 
     Frontend::Ptr frontend_ = nullptr;
     Backend::Ptr backend_ = nullptr;

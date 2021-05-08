@@ -17,10 +17,10 @@ namespace myslam {
 
 Frontend::Frontend() {
     gftt_ =
-        cv::GFTTDetector::create(Config::Get<int>("num_features"), 0.01, 10);
+        cv::GFTTDetector::create(Config::GetParam<int>("num_features"), 0.01, 10);
     brief_ = cv::xfeatures2d::BriefDescriptorExtractor::create(32, true);
-    num_features_init_ = Config::Get<int>("num_features_init");
-    num_features_ = Config::Get<int>("num_features");
+    num_features_init_ = Config::GetParam<int>("num_features_init");
+    num_features_ = Config::GetParam<int>("num_features");
 }
 
 bool Frontend::AddFrame(myslam::Frame::Ptr frame) {
