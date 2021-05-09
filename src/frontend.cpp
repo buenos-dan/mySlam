@@ -74,13 +74,10 @@ bool Frontend::InsertKeyframe() {
         // still have enough features, don't insert keyframe
         return false;
     }
-
     SetObservationsForKeyFrame();
     DetectFeatures();  // detect new features
-    // track in right image
-    FindFeaturesInRight();
-    // triangulate map points
-    TriangulateNewPoints();
+    FindFeaturesInRight(); // track in right image
+    TriangulateNewPoints();  // triangulate map points
     // current frame is a new keyframe
     current_frame_->SetKeyFrame();
     map_->InsertKeyFrame(current_frame_);
@@ -228,6 +225,7 @@ int Frontend::EstimateCurrentPose() {
 int Frontend::TrackLastFrame() {
     // use LK flow to estimate points in the last image
     std::vector<cv::Point2f> kps_last, kps_current;
+    std::vector<int> index_filter(last_frame_->features_left_.size());
     for (auto &kp : last_frame_->features_left_) {
         kps_last.push_back(kp->position_.pt);
     }
@@ -239,18 +237,47 @@ int Frontend::TrackLastFrame() {
         last_frame_->left_img_, current_frame_->left_img_, kps_last,
         kps_current, status, error, cv::Size(21, 21), 3);
 
-    int num_good_pts = 0;
-
-
-    for (size_t i = 0; i < status.size(); ++i) {
-        if (status[i]) {
-            cv::KeyPoint kp(kps_current[i], 7);
-            Feature::Ptr feature(new Feature(current_frame_, kp));
-            feature->map_point_ = last_frame_->features_left_[i]->map_point_;
-            current_frame_->features_left_.push_back(feature);
-            current_frame_->descriptors_left_.push_back(last_frame_->descriptors_left_.row(i));
-            num_good_pts++;
+    { // reduce
+        int cnt = 0;
+        for (size_t i = 0; i < status.size(); ++i) {
+            if (status[i]) {
+                kps_last[cnt] = kps_last[i];
+                kps_current[cnt] = kps_current[i];
+                index_filter[cnt] = i;
+                cnt++;
+            }
         }
+        kps_last.resize(cnt);
+        kps_current.resize(cnt);
+    }
+//    LOG(INFO) << "Follow " << kps_last.size() << " in the last image.";
+
+    status.reserve(0);
+    cv::findFundamentalMat(kps_last, kps_current, cv::FM_RANSAC, 1.0, 0.99, status);
+    { // reduce
+        int cnt = 0;
+        for (size_t i = 0; i < status.size(); ++i) {
+            if (status[i]) {
+                kps_last[cnt] = kps_last[i];
+                kps_current[cnt] = kps_current[i];
+                index_filter[cnt] = index_filter[i];
+                cnt++;
+            }
+        }
+        kps_last.resize(cnt);
+        kps_current.resize(cnt);
+        index_filter.resize(cnt);
+    }
+//    LOG(INFO) << "rejectWithF " << kps_last.size() << " in the last image.";
+
+    int num_good_pts = 0;
+    for (size_t i = 0; i < kps_current.size(); ++i) {
+        cv::KeyPoint kp(kps_current[i], 7);
+        Feature::Ptr feature(new Feature(current_frame_, kp));
+        feature->map_point_ = last_frame_->features_left_[index_filter[i]]->map_point_;
+        current_frame_->features_left_.push_back(feature);
+        current_frame_->descriptors_left_.push_back(last_frame_->descriptors_left_.row(index_filter[i]));
+        num_good_pts++;
     }
     assert(current_frame_->features_left_.size() == current_frame_->descriptors_left_.rows);
 

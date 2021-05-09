@@ -88,7 +88,7 @@ double VisualOdometry::CalSeqError(){
     for(auto& kf: kfs){
         SE3 gtPoseInv = gtPoses.at(kf.second->id_);
         SE3 pose = kf.second->Pose();
-        double error = (gtPoseInv * pose).log().norm();
+        double error = (pose * gtPoseInv).log().norm();
         rmse += error * error;
     }
 

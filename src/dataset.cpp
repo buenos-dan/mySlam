@@ -61,15 +61,22 @@ Frame::Ptr Dataset::NextFrame() {
         return nullptr;
     }
 
-    cv::Mat image_left_resized, image_right_resized;
-    cv::resize(image_left, image_left_resized, cv::Size(), 0.5, 0.5,
+    cv::resize(image_left, image_left, cv::Size(), 0.5, 0.5,
                cv::INTER_NEAREST);
-    cv::resize(image_right, image_right_resized, cv::Size(), 0.5, 0.5,
+    cv::resize(image_right, image_right, cv::Size(), 0.5, 0.5,
                cv::INTER_NEAREST);
 
+
+    if (1)  // set equalize_flag maybe later.
+    {
+        cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE(3.0, cv::Size(8, 8));
+        clahe->apply(image_left, image_left);
+        clahe->apply(image_right, image_right);
+    }
+
     auto new_frame = Frame::CreateFrame();
-    new_frame->left_img_ = image_left_resized;
-    new_frame->right_img_ = image_right_resized;
+    new_frame->left_img_ = image_left;
+    new_frame->right_img_ = image_right;
     current_image_index_++;
     return new_frame;
 }

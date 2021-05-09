@@ -32,8 +32,6 @@ void Viewer::UpdateMap() {
     assert(map_ != nullptr);
     keyframes_ = map_->GetAllKeyFrames();
     landmarks_ = map_->GetAllMapPoints();
-    active_keyframes_ = map_->GetActiveKeyFrames();
-    active_landmarks_ = map_->GetActiveMapPoints();
     map_updated_ = true;
 }
 

@@ -8,6 +8,8 @@
 DEFINE_string(config_file, "./config/default.yaml", "config file path");
 
 int main(int argc, char **argv) {
+    FLAGS_log_dir = "./logs";
+    google::InitGoogleLogging(argv[0]);
     google::ParseCommandLineFlags(&argc, &argv, true);
 
     myslam::VisualOdometry::Ptr vo(

@@ -52,7 +52,6 @@ void Map::InsertKeyFrame(Frame::Ptr frame) {
     if (active_keyframes_.size() > num_active_keyframes_) {
         RemoveOldKeyframe();
     }
-    CleanMap();
 }
 
 void Map::InsertMapPoint(MapPoint::Ptr map_point) {
@@ -97,26 +96,15 @@ void Map::RemoveOldKeyframe() {
     LOG(INFO) << "remove keyframe " << frame_to_remove->keyframe_id_;
     // remove keyframe and landmark observation
     active_keyframes_.erase(frame_to_remove->keyframe_id_);
-    for (auto feat : frame_to_remove->features_left_) {
-        auto mp = feat->map_point_.lock();
-        if (mp) {
-            mp->RemoveObservation(feat);
+    active_landmarks_.clear();
+    for(auto& kf : active_keyframes_){
+        for(auto& feat : kf.second->features_left_){
+            auto mp = feat->map_point_.lock();
+            if(mp){
+                active_landmarks_.insert({mp->id_, mp});
+            }
         }
     }
-}
-
-void Map::CleanMap() {
-    int cnt_landmark_removed = 0;
-    for (auto iter = active_landmarks_.begin();
-         iter != active_landmarks_.end();) {
-        if (iter->second->observed_times_ == 0) {
-            iter = active_landmarks_.erase(iter);
-            cnt_landmark_removed++;
-        } else {
-            ++iter;
-        }
-    }
-    LOG(INFO) << "Removed " << cnt_landmark_removed << " active landmarks";
 }
 
     void Map::DetectLoopAndCorrectMappoint(Frame::Ptr frame){
@@ -176,10 +164,24 @@ void Map::CleanMap() {
             std::vector<Feature::Ptr> loopFeats = loopFrame->features_left_;
             for(cv::DMatch match: good_matches){
                 // TODO: ...
-                frame->features_left_[match.trainIdx]->map_point_ = loopFeats[match.queryIdx] -> map_point_;
-                correct_point_cnt++;
+                MapPoint::Ptr loop_mp = loopFeats[match.queryIdx]->map_point_.lock();
+                MapPoint::Ptr cur_mp = frame->features_left_[match.trainIdx]->map_point_.lock();
+                if(loop_mp){
+                    if(cur_mp){
+                        for(auto& obs : cur_mp->observations_){
+                            Feature::Ptr feat = obs.lock();
+                            if(feat){
+                                feat->map_point_ = loop_mp;
+                            }
+                        }
+                        // erase cur_mp
+                        landmarks_.erase(cur_mp->id_);
+                    } else {
+                        frame->features_left_[match.trainIdx]->map_point_ = loop_mp;
+                    }
+                    correct_point_cnt++;
+                }
             }
-            LOG(INFO) << "get " << good_matches.size() << " good matches.";
             LOG(INFO) << "correct " << correct_point_cnt << " points.";
             // add into queue to BA.
             {

@@ -60,8 +60,7 @@ class Viewer {
 
     std::unordered_map<unsigned long, Frame::Ptr> keyframes_;
     std::unordered_map<unsigned long, MapPoint::Ptr> landmarks_;
-    std::unordered_map<unsigned long, Frame::Ptr> active_keyframes_;
-    std::unordered_map<unsigned long, MapPoint::Ptr> active_landmarks_;
+
     bool map_updated_ = false;
 
     bool show_ground_truth_;

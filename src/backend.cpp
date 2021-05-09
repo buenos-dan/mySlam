@@ -48,7 +48,7 @@ void Backend::BackendLoop() {
         /// 后端仅优化激活的Frames和Landmarks
         Map::KeyframesType active_kfs = map_->GetActiveKeyFrames();
         Map::LandmarksType active_landmarks = map_->GetActiveMapPoints();
-        Optimize(active_kfs, active_landmarks);
+//        Optimize(active_kfs, active_landmarks);
     }
 }
 
@@ -101,6 +101,7 @@ void Backend::Optimize(Map::KeyframesType &keyframes,
             if (obs.lock() == nullptr) continue;
             auto feat = obs.lock();
             if (feat->is_outlier_ || feat->frame_.lock() == nullptr) continue;
+            if (keyframes.count(feat->frame_.lock()->keyframe_id_) == 0) continue;
 
             auto frame = feat->frame_.lock();
             EdgeProjection *edge = nullptr;
@@ -152,7 +153,7 @@ void Backend::Optimize(Map::KeyframesType &keyframes,
             }
         }
         double inlier_ratio = cnt_inlier / double(cnt_inlier + cnt_outlier);
-        if (inlier_ratio > 0.6) {
+        if (inlier_ratio > 0.5) {
             break;
         } else {
             chi2_th *= 2;
