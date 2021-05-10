@@ -39,6 +39,8 @@ bool Frontend::AddFrame(myslam::Frame::Ptr frame) {
             break;
     }
 
+    // save frame pose, just for calculate rmse.
+    map_->setFramePose(current_frame_->id_, current_frame_->pose_);
     last_frame_ = current_frame_;
     return true;
 }
@@ -149,6 +151,7 @@ int Frontend::EstimateCurrentPose() {
     VertexPose *vertex_pose = new VertexPose();  // camera vertex_pose
     vertex_pose->setId(0);
     vertex_pose->setEstimate(current_frame_->Pose());
+    vertex_pose->setFixed(false);
     optimizer.addVertex(vertex_pose);
 
     // K
@@ -181,8 +184,8 @@ int Frontend::EstimateCurrentPose() {
     int cnt_outlier = 0;
     for (int iteration = 0; iteration < 5; ++iteration) {
         vertex_pose->setEstimate(current_frame_->Pose());
-        optimizer.initializeOptimization();
-        optimizer.optimize(4);
+        optimizer.initializeOptimization(0);
+        optimizer.optimize(10);
         cnt_outlier = 0;
 
         // count the outliers

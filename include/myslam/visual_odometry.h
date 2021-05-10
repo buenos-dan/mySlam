@@ -17,6 +17,7 @@ class VisualOdometry {
    public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
     typedef std::shared_ptr<VisualOdometry> Ptr;
+    typedef std::unordered_map<unsigned long, Sophus::SE3f> TrajectoryType;
 
     /// constructor with config file
     VisualOdometry(std::string &config_path);
@@ -40,11 +41,8 @@ class VisualOdometry {
     /// 获取前端状态
     FrontendStatus GetFrontendStatus() const { return frontend_->GetStatus(); }
 
-    // 计算均方根误差
-    double CalSeqError();
-
-    // load groundtrue
-    Viewer::TrajectoryType loadPoses(const std::string file_name);
+    // 保存轨迹
+    void SaveTrajectory(const std::string &filename);
 
 private:
     bool inited_ = false;

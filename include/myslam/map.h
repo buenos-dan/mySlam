@@ -24,8 +24,16 @@ public:
     std::mutex loop_mutex_;
     std::queue<std::pair<unsigned long, unsigned long>> loopQueue_;
 
+    std::unordered_map<unsigned long, SE3> framePoses;     // just for calculate rmse
+
 public:
     Map();
+
+    /// 保存帧位姿
+    void setFramePose(unsigned long id, SE3 twc){
+        if(framePoses.count(id) > 0) framePoses.at(id) = twc;
+        else framePoses.insert({id, twc});
+    }
 
     /// 增加一个关键帧
     void InsertKeyFrame(Frame::Ptr frame);

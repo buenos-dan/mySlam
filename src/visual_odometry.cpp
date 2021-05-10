@@ -5,6 +5,7 @@
 #include <chrono>
 #include "myslam/config.h"
 #include <fstream>
+#include <iomanip>
 
 
 namespace myslam {
@@ -56,8 +57,13 @@ void VisualOdometry::Run() {
     backend_->Stop();
     viewer_->Close();
 
-    // cal RMSE
-    LOG(INFO) << "RMSE: " << CalSeqError();
+    // save trajectory
+    bool save_trajectory = Config::Get<int>("save_trajectory");
+    if(save_trajectory){
+        std::string trajectoryFile = Config::Get<std::string>("output_trajectory_file");
+        SaveTrajectory(trajectoryFile);
+    }
+
 
     LOG(INFO) << "VO exit";
 }
@@ -75,45 +81,22 @@ bool VisualOdometry::Step() {
     return success;
 }
 
-double VisualOdometry::CalSeqError(){
-    double rmse = 0;
+void VisualOdometry::SaveTrajectory(const std::string &filename){
+    std::ofstream f;
+    f.open(filename.c_str());
+    f << std::fixed;
 
-    Viewer::TrajectoryType gtPoses = loadPoses(Config::Get<std::string>("ground_truth_file"));
-    if(gtPoses.empty()){
-        LOG(ERROR) << "load ground truth err, CalSeqError exit.";
-        return rmse;
+
+    for(int i = 0; i < map_->framePoses.size(); i++)
+    {
+        Eigen::Matrix<double, 4, 4> pose = map_->framePoses.at(i).inverse().matrix();
+        f << std::setprecision(9) << pose(0,0) << " " << pose(0,1)  << " " << pose(0,2) << " " << pose(0, 3)
+                              << " " << pose(1,0) << " " << pose(1,1)  << " " << pose(1,2) << " "  << pose(1,3)
+                              << " " << pose(2,0) << " " << pose(2,1)  << " " << pose(2,2) << " "  << pose(2,3)
+                              << std::endl;
     }
-
-    Map::KeyframesType kfs = map_->GetAllKeyFrames();
-    for(auto& kf: kfs){
-        SE3 gtPoseInv = gtPoses.at(kf.second->id_);
-        SE3 pose = kf.second->Pose();
-        double error = (pose * gtPoseInv).log().norm();
-        rmse += error * error;
-    }
-
-    rmse = rmse / double(kfs.size());
-    rmse = sqrt(rmse);
-    return rmse;
-}
-
-Viewer::TrajectoryType VisualOdometry::loadPoses(const std::string file_name) {
-    Viewer::TrajectoryType gtPoses;
-    std::ifstream fin(file_name);
-    if(!fin) return gtPoses;
-
-    unsigned long cnt = 0;
-    while(!fin.eof()) {
-        float a11, a12, a13, a14, a21, a22, a23, a24, a31, a32, a33, a34;
-        fin >> a11 >> a12 >> a13 >> a14 >> a21 >> a22 >> a23 >> a24
-            >> a31 >> a32 >> a33 >> a34;
-        Sophus::Matrix4f p;
-        p << a11, a12, a13, a14, a21, a22, a23, a24, a31, a32, a33, a34, 0, 0 ,0, 1;
-        Sophus::SE3f pose_gt(p);
-        gtPoses.insert({cnt++, pose_gt.cast<double>()});
-    }
-    fin.close();
-    return gtPoses;
+    f.close();
+    LOG(INFO) << "trajectory saved!";
 }
 
 }  // namespace myslam
