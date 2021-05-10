@@ -103,7 +103,7 @@ void Viewer::DrawFrame(Frame::Ptr frame, const float* color) {
 }
 
 void Viewer::DrawCamPose(SE3 Twc, const float* color) {
-    const float sz = 1.0;
+    const float sz = 0.5;
     const int line_width = 2.0;
     const float fx = 400;
     const float fy = 400;

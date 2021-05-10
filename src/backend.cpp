@@ -177,6 +177,7 @@ void Backend::Optimize(Map::KeyframesType &keyframes,
     // Set pose and lanrmark position
     for (auto &v : vertices) {
         keyframes.at(v.first)->SetPose(v.second->estimate());
+        map_->setFramePose(keyframes.at(v.first)->id_, v.second->estimate());
     }
     for (auto &v : vertices_landmarks) {
         landmarks.at(v.first)->SetPos(v.second->estimate());

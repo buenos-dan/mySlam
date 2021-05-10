@@ -163,7 +163,6 @@ void Map::RemoveOldKeyframe() {
             int correct_point_cnt = 0;
             std::vector<Feature::Ptr> loopFeats = loopFrame->features_left_;
             for(cv::DMatch match: good_matches){
-                // TODO: ...
                 MapPoint::Ptr loop_mp = loopFeats[match.queryIdx]->map_point_.lock();
                 MapPoint::Ptr cur_mp = frame->features_left_[match.trainIdx]->map_point_.lock();
                 if(loop_mp){
@@ -190,18 +189,18 @@ void Map::RemoveOldKeyframe() {
             }
 
             { // debug
-                Mat imgOut;
-                std::vector<cv::KeyPoint> loopKps, curKps;
-                for(auto& feat: loopFrame->features_left_){
-                    loopKps.push_back(feat->position_);
-                }
-                for(auto& feat : frame->features_left_){
-                    curKps.push_back(feat->position_);
-                }
-                cv::drawMatches(loopFrame->left_img_, loopKps, frame->left_img_, curKps, good_matches, imgOut);
-                imshow("loop detect", imgOut);
-                cv::waitKey(0);
-                cv::destroyAllWindows();
+//                Mat imgOut;
+//                std::vector<cv::KeyPoint> loopKps, curKps;
+//                for(auto& feat: loopFrame->features_left_){
+//                    loopKps.push_back(feat->position_);
+//                }
+//                for(auto& feat : frame->features_left_){
+//                    curKps.push_back(feat->position_);
+//                }
+//                cv::drawMatches(loopFrame->left_img_, loopKps, frame->left_img_, curKps, good_matches, imgOut);
+//                imshow("loop detect", imgOut);
+//                cv::waitKey(0);
+//                cv::destroyAllWindows();
             }
 
             last_loop_index_ = frame->keyframe_id_;
